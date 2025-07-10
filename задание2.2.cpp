@@ -1,9 +1,17 @@
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 
 class Strategy{
 public:
     virtual ~Strategy() = default;
     virtual void encrypt(std::string&, int) = 0;
+};
+
+class Getting_strat{
+public:
+    virtual ~Getting_strat() = default;
+    virtual void gettingBy(std::string&, int&) = 0;
 };
 
 class Caesar : public Strategy{
@@ -61,18 +69,25 @@ public:
 class Encrypting_prog{
 private:
     Strategy *strategy_;
+    Getting_strat *get_strat_;
     std::string message;
     int key;
 
 public:
-    Encrypting_prog(Strategy *strategy) : strategy_(strategy) { };
+    Encrypting_prog(Strategy *strategy, Getting_strat *get_st) : strategy_{strategy}, get_strat_{get_st} { };
 
-    void setMessage(const std::string& msg) { this->message = msg; };
-    void setKey(const int &k) { this->key = k; };
+    void setGetting(Getting_strat *get_st){
+        delete this->get_strat_;
+        this->get_strat_ = get_st;
+    };
 
     void setEncrypt(Strategy *strategy){
         delete this->strategy_;
         this->strategy_ = strategy;
+    };
+
+    void getUtils(){
+        this->get_strat_->gettingBy(this->message, this->key);
     };
 
     void doEncrypt(){
@@ -85,14 +100,40 @@ public:
     };
 };
 
+class gettingByCons : public Getting_strat{
+public:
+    void gettingBy(std::string &message, int &key) override {
+        std::cout << "Insert a message: "; std::cin >> message;
+        std::cout << "Insert a key (it won't interfere if it's not necessary): "; std::cin >> key;
+    };
+};
+
+class gettingByFile : public Getting_strat{
+public:
+    void gettingBy(std::string &message, int &key) override {
+    std::string name;
+    while(true){
+        std::cout << "Enter a file name: "; std::cin >> name;
+        if(!std::filesystem::exists(name))
+            std::cout << "no such file\n";
+        else
+            break;
+    }
+
+    std::ifstream in;
+    in.open(name);
+    in >> message;
+    in >> key;
+};
+};
+
 int main(){
-    Encrypting_prog *encrypting = new Encrypting_prog(new Caesar);
-    encrypting->setKey(2);
-    encrypting->setMessage("Alexey");
+    Encrypting_prog *encrypting = new Encrypting_prog(new Caesar, new gettingByFile);
+
+    encrypting->getUtils();
     encrypting->doEncrypt();
 
-    encrypting->setEncrypt(new Atbash);
-    encrypting->setMessage("Caesar");
+    encrypting->setGetting(new gettingByCons);
     encrypting->doEncrypt();
 
     return 0;
